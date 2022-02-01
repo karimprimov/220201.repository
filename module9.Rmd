@@ -1,0 +1,140 @@
+---
+title: "module9"
+author: "Karim Primov"
+date: "2/1/2022"
+output: html_document
+---
+
+```{r}
+library(sjmisc)
+library(tidyverse)
+library(base)
+library(ggplot2)
+```
+Read in the dataset “KamilarAndCooperData,” which contains a host of summary information about 213 primate species.
+
+Spend some time exploring the data on your own and then make boxplots of log(female body mass) ~ family. Try doing this with {base} graphics and then look at how we might do in in {ggplot2}, which provides a standard “grammar of graphics” (see the {ggplot2} documentation)
+
+```{r}
+f <- "https://raw.githubusercontent.com/difiore/ada-2022-datasets/main/KamilarAndCooperData.csv"
+d <- read_csv(f, col_names = TRUE) #creates a tibble
+d
+library(skimr)
+library(kableExtra)
+s <- skim(d)
+s %>%
+  filter(skim_variable == "Scientific_Name" | skim_type == "numeric") %>%
+  rename(variable=skim_variable, missing=n_missing, mean=numeric.mean,
+         sd=numeric.sd, min=numeric.p0, p25=numeric.p25, median=numeric.p50,
+         p75=numeric.p75, max=numeric.p100, hist=numeric.hist) %>%
+  select(variable, missing, mean, sd, min, median, max, hist) %>%
+  # drop p25 and p75 for purposes of display
+  kable() %>%
+  kable_styling(font_size = 10)
+detach(package:skimr)
+detach(package:kableExtra)
+boxplot(log(d$Body_mass_female_mean)~d$Family)
+```
+alternatively with ggplot
+```{r}
+p <- ggplot(data=d, aes(x=Family, y=log(Body_mass_female_mean)))
+p <- p + geom_boxplot(na.rm=TRUE)
+p <- p + theme(axis.text.x=element_text(angle=90))
+p <- p + ylab("log(Female Body Mass)")
+p
+```
+Again using data from the “KamilarAndCooperData” dataset, plot the relationship between female body size and female brain size. Then, play with log transforming the data and plot again.
+```{r}
+library(skimr)
+library(kableExtra)
+s %>%
+  filter(skim_variable == "Scientific_Name" | skim_type == "numeric") %>%
+  rename(variable=skim_variable, missing=n_missing, mean=numeric.mean,
+         sd=numeric.sd, min=numeric.p0, p25=numeric.p25, median=numeric.p50,
+         p75=numeric.p75, max=numeric.p100, hist=numeric.hist) %>%
+  select(variable, missing, mean, sd, min, median, max, hist) %>%
+  # drop p25 and p75 for purposes of display
+  kable() %>%
+  kable_styling(font_size = 10)
+detach(package:skimr)
+detach(package:kableExtra)
+plot(d$Brain_Size_Species_Mean~d$Body_mass_female_mean)#normal scatterplot
+plot(log(d$Brain_Size_Species_Mean)~log(d$Body_mass_female_mean))#log-transformed scatterplot
+
+#colored log-transformed brain mass/body mass scatterplot
+p <- ggplot(data=d, aes(x=log(Body_mass_female_mean),
+                        y=log(Brain_Size_Female_Mean),
+                        color = factor(Family)
+)) # first, we build a plot object and color points by Family
+# then we modify the axis labels
+p <- p + xlab("log(Female Body Mass)") + ylab("log(Female Brain Size)")
+# then we make a scatterplot
+p <- p + geom_point(na.rm=TRUE)
+# then we modify the legend
+p <- p + theme(legend.position="bottom", legend.title=element_blank())
+# and, finally, we plot the object
+p
+
+library(ggExtra)
+ggMarginal(p, type = "densigram") # try with other types, too!
+
+```
+Build your own bivariate scatterplot of log(MaxLongevity_m) by log(Body_mass_female_mean) using the “KamilarAndCooperData” dataset.
+```{r}
+library(car)
+#bivariate plot of MaxLongevity_m and Body_mass_female_mean
+scatterplot(
+  data = d,
+  log(MaxLongevity_m) ~ log(Body_mass_female_mean),
+  xlab = "log(Female Body Mass",
+  ylab = "log(Female Brain Size",
+  boxplots = "xy",
+  regLine = 
+    list(
+      # method = lm,
+      lty = 1,
+      lwd = 2,
+      col = "red"
+    )
+)
+```
+Select the variables Brain_Size_Female_Mean, Body_mass_female_mean, MeanGroupSize, WeaningAge_d, MaxLongevity_m, HomeRange_km2, and DayLength_km from data frame d and plot scatterplots of all pairs of variables.
+
+```{r}
+library(car)
+s <-
+  select(d,
+    c(
+      "Brain_Size_Female_Mean",
+      "Body_mass_female_mean",
+      "MeanGroupSize",
+      "WeaningAge_d",
+      "MaxLongevity_m",
+      "HomeRange_km2",
+      "DayLength_km"
+    )
+  )
+pairs(s[,1:ncol(s)]) # or
+pairs(data=s, ~.) # NAs are ignored by default
+
+library(car)
+scatterplotMatrix(s,
+  smooth = TRUE,
+  regLine = list(method = lm, lty = 1, lwd = 2),
+  ellipse = TRUE,
+  upper.panel = NULL
+)
+detach(package:car)
+
+library(psych)
+pairs.panels(s[], 
+  smooth = FALSE,
+  lm = TRUE,
+  method = "pearson", # method = correlation method
+  hist.col = "#00AFBB",
+  density = TRUE, # density = show density curve on histogram
+  ellipses = TRUE # ellipses = show correlation ellipses
+)
+detach(package:psych)
+```
+
